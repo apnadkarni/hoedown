@@ -718,6 +718,7 @@ static size_t
 parse_math(hoedown_buffer *ob, hoedown_document *doc, uint8_t *data, size_t offset, size_t size, const char *end, size_t delimsz, int displaymode)
 {
 	size_t i = delimsz;
+        hoedown_buffer text = {0, 0, 0, 0, NULL, NULL, NULL};
 	if (!doc->md.math) return 0;
 
 	/* find ending delimiter */
@@ -732,7 +733,8 @@ parse_math(hoedown_buffer *ob, hoedown_document *doc, uint8_t *data, size_t offs
 	}
 
 	/* prepare buffers */
-	hoedown_buffer text = { data + delimsz, i - delimsz, 0, 0, NULL, NULL, NULL };
+        text.data = data + delimsz;
+        text.size = i - delimsz;
 
 	/* if this is a $$ and MATH_EXPLICIT is not active,
 	 * guess wether displaymode should be enabled from the context */
@@ -2087,7 +2089,7 @@ htmlblock_find_end_strict(
 static size_t
 parse_htmlblock(hoedown_buffer *ob, hoedown_document *doc, uint8_t *data, size_t size, int do_render)
 {
-	size_t i, j = 0, tag_end;
+	size_t i, j = 0, tag_end, tag_len;
 	const char *curtag = NULL;
 	hoedown_buffer work = { data, 0, 0, 0, NULL, NULL, NULL };
 
@@ -2148,7 +2150,7 @@ parse_htmlblock(hoedown_buffer *ob, hoedown_document *doc, uint8_t *data, size_t
 	}
 
 	/* looking for a matching closing tag in strict mode */
-	size_t tag_len = strlen(curtag);
+	tag_len = strlen(curtag);
 	tag_end = htmlblock_find_end_strict(curtag, tag_len, doc, data, size);
 
 	/* if not found, trying a second pass looking for indented match */
@@ -2189,7 +2191,7 @@ parse_table_row(
 		i++;
 
 	for (col = 0; col < columns && i < size; ++col) {
-		size_t cell_start, cell_end;
+		size_t cell_start, cell_end, len;
 		hoedown_buffer *cell_work;
 
 		cell_work = newbuf(doc, BUFFER_SPAN);
@@ -2199,7 +2201,7 @@ parse_table_row(
 
 		cell_start = i;
 
-		size_t len = find_emph_char(data + i, size - i, '|');
+		len = find_emph_char(data + i, size - i, '|');
 		i += len ? len : size - i;
 
 		cell_end = i - 1;

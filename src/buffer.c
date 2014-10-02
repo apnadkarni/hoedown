@@ -133,9 +133,10 @@ hoedown_buffer_eqs(const hoedown_buffer *buf, const char *str)
 int
 hoedown_buffer_prefix(const hoedown_buffer *buf, const char *prefix)
 {
+        size_t i;
 	assert(buf && buf->unit);
 
-	for (size_t i = 0; i < buf->size; ++i) {
+	for (i = 0; i < buf->size; ++i) {
 		if (prefix[i] == 0)
 			return 0;
 
@@ -174,6 +175,47 @@ hoedown_buffer_cstr(hoedown_buffer *buf)
 	return (char *)buf->data;
 }
 
+/*
+ * Older Microsoft compilers have some functions missing so we use
+ * different versions of hoedown_buffer_printf
+ */
+#if defined(_MSC_VER) && (_MSC_VER < 1300)
+/* Implementation for old MS compilers */
+void
+hoedown_buffer_printf(hoedown_buffer *buf, const char *fmt, ...)
+{
+	va_list ap;
+	int n;
+
+	assert(buf && buf->unit);
+
+	if (buf->size >= buf->asize) {
+		hoedown_buffer_grow(buf, 2*buf->size);
+	}
+
+	while (1) {
+		assert(buf->asize > buf->size);
+		buf->data[buf->asize-1] = 0;
+		va_start(ap, fmt);
+		n = _vsnprintf((char *)buf->data + buf->size, buf->asize - buf->size, fmt, ap);
+		va_end(ap);
+
+		if (n >= 0 && n < (buf->asize - buf->size))
+			break;				/* Got it all */
+
+		if (n < 0 && buf->data[buf->asize-1] == 0) {
+			/* Some error other than buffer too small */
+			return;
+		}
+
+		/* Buffer too small. Double existing size and loop back to retry */
+		hoedown_buffer_grow(buf, 2*buf->asize);
+	}
+
+	buf->size += n;
+}
+#else
+/* Implementation for non-MS compilers and new MS compilers */
 void
 hoedown_buffer_printf(hoedown_buffer *buf, const char *fmt, ...)
 {
@@ -185,8 +227,16 @@ hoedown_buffer_printf(hoedown_buffer *buf, const char *fmt, ...)
 	if (buf->size >= buf->asize)
 		hoedown_buffer_grow(buf, buf->size + 1);
 
+        /*
+         * Note vsnprintf and MSC _vsnprintf have different return semantics
+         * so don't just #define one as the other
+         */
 	va_start(ap, fmt);
+#ifdef _MSC_VER
+	n = _vsnprintf((char *)buf->data + buf->size, buf->asize - buf->size, fmt, ap);
+#else
 	n = vsnprintf((char *)buf->data + buf->size, buf->asize - buf->size, fmt, ap);
+#endif
 	va_end(ap);
 
 	if (n < 0) {
@@ -203,7 +253,11 @@ hoedown_buffer_printf(hoedown_buffer *buf, const char *fmt, ...)
 		hoedown_buffer_grow(buf, buf->size + n + 1);
 
 		va_start(ap, fmt);
+#ifdef _MSC_VER
+		n = _vsnprintf((char *)buf->data + buf->size, buf->asize - buf->size, fmt, ap);
+#else
 		n = vsnprintf((char *)buf->data + buf->size, buf->asize - buf->size, fmt, ap);
+#endif
 		va_end(ap);
 	}
 
@@ -212,3 +266,4 @@ hoedown_buffer_printf(hoedown_buffer *buf, const char *fmt, ...)
 
 	buf->size += n;
 }
+#endif

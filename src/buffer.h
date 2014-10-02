@@ -6,7 +6,15 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <stdarg.h>
+#ifdef APN
 #include <stdint.h>
+#else
+typedef unsigned char uint8_t;
+#endif
+#ifndef UINT8_MAX
+#include <limits.h>
+#define UINT8_MAX UCHAR_MAX
+#endif
 #include <stdlib.h>
 
 #ifdef __cplusplus

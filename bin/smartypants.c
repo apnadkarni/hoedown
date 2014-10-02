@@ -56,6 +56,11 @@ main(int argc, char **argv)
 	int i, j;
 	for (i = 1; i < argc; i++) {
 		char *arg = argv[i];
+		char opt [100];
+                char *val;
+		long int num;
+		int isNum, opt_parsed;
+
 		if (!arg[0]) continue;
 
 		if (just_args || arg[0] != '-') {
@@ -76,46 +81,45 @@ main(int argc, char **argv)
 
 		if (arg[1] != '-') {
 			/* parse short options */
-			char opt;
-			const char *val;
-			for (j = 1; (opt = arg[j]); j++) {
-				if (opt == 'h') {
+			char optch;
+			const char *optval;
+			for (j = 1; (optch = arg[j]); j++) {
+				if (optch == 'h') {
 					print_help(argv[0]);
 					return 1;
 				}
 
-				if (opt == 'v') {
+				if (optch == 'v') {
 					print_version();
 					return 1;
 				}
 
-				if (opt == 'T') {
+				if (optch == 'T') {
 					show_time = 1;
 					continue;
 				}
 
 				/* options requiring value */
-				if (arg[++j]) val = arg+j;
-				else if (argv[++i]) val = argv[i];
+				if (arg[++j]) optval = arg+j;
+				else if (argv[++i]) optval = argv[i];
 				else {
-					fprintf(stderr, "Wrong option '-%c' found.\n", opt);
+					fprintf(stderr, "Wrong option '-%c' found.\n", optch);
 					return 1;
 				}
 
-				long int num;
-				int isNum = parseint(val, &num);
+				isNum = parseint(optval, &num);
 
-				if (opt == 'i' && isNum) {
+				if (optch == 'i' && isNum) {
 					iunit = num;
 					break;
 				}
 
-				if (opt == 'o' && isNum) {
+				if (optch == 'o' && isNum) {
 					ounit = num;
 					break;
 				}
 
-				fprintf(stderr, "Wrong option '-%c' found.\n", opt);
+				fprintf(stderr, "Wrong option '-%c' found.\n", optch);
 				return 1;
 			}
 			continue;
@@ -128,14 +132,13 @@ main(int argc, char **argv)
 		}
 
 		/* parse long option */
-		char opt [100];
 		strncpy(opt, arg+2, 100);
 		opt[99] = 0;
 
-		char *val = strchr(opt, '=');
+		val = strchr(opt, '=');
 
-		long int num = 0;
-		int isNum = 0;
+		num = 0;
+		isNum = 0;
 
 		if (val) {
 			*val = 0;
@@ -145,7 +148,7 @@ main(int argc, char **argv)
 				isNum = parseint(val, &num);
 		}
 
-		int opt_parsed = 0;
+		opt_parsed = 0;
 
 		if (strcmp(opt, "help")==0) {
 			print_help(argv[0]);

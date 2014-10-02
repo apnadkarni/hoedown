@@ -92,6 +92,9 @@ static const char *negative_prefix = "no-";
 
 void
 print_help(const char *basename) {
+	size_t i;
+	size_t e;
+
 	/* usage */
 	printf("Usage: %s [OPTION]... [FILE]\n\n", basename);
 
@@ -114,8 +117,6 @@ print_help(const char *basename) {
 	printf("\n");
 
 	/* extensions */
-	size_t i;
-	size_t e;
 	for (i = 0; i < count_of(categories_info); i++) {
 		struct extension_category_info *category = categories_info+i;
 		printf("%s (--%s%s):\n", category->label, category_prefix, category->option_name);
@@ -172,12 +173,21 @@ main(int argc, char **argv)
 	/* HTML renderer-specific */
 	unsigned int html_flags = 0;
 
+	hoedown_renderer *renderer = NULL;
+	void (*renderer_free)(hoedown_renderer*) = NULL;
 
 	/* option parsing */
 	int just_args = 0;
 	int i, j;
 	for (i = 1; i < argc; i++) {
 		char *arg = argv[i];
+		char opt [100];
+                char *val;
+                long int num;
+                int isNum, opt_parsed;
+		const char *name;
+		size_t i;
+
 		if (!arg[0]) continue;
 
 		if (just_args || arg[0] != '-') {
@@ -198,20 +208,19 @@ main(int argc, char **argv)
 
 		if (arg[1] != '-') {
 			/* parse short options */
-			char opt;
-			const char *val;
-			for (j = 1; (opt = arg[j]); j++) {
-				if (opt == 'h') {
+			char optch;
+			for (j = 1; (optch = arg[j]); j++) {
+				if (optch == 'h') {
 					print_help(argv[0]);
 					return 1;
 				}
 
-				if (opt == 'v') {
+				if (optch == 'v') {
 					print_version();
 					return 1;
 				}
 
-				if (opt == 'T') {
+				if (optch == 'T') {
 					show_time = 1;
 					continue;
 				}
@@ -220,34 +229,33 @@ main(int argc, char **argv)
 				if (arg[++j]) val = arg+j;
 				else if (argv[++i]) val = argv[i];
 				else {
-					fprintf(stderr, "Wrong option '-%c' found.\n", opt);
+					fprintf(stderr, "Wrong option '-%c' found.\n", optch);
 					return 1;
 				}
 
-				long int num;
-				int isNum = parseint(val, &num);
+				isNum = parseint(val, &num);
 
-				if (opt == 'n' && isNum) {
+				if (optch == 'n' && isNum) {
 					max_nesting = num;
 					break;
 				}
 
-				if (opt == 't' && isNum) {
+				if (optch == 't' && isNum) {
 					toc_level = num;
 					break;
 				}
 
-				if (opt == 'i' && isNum) {
+				if (optch == 'i' && isNum) {
 					iunit = num;
 					break;
 				}
 
-				if (opt == 'o' && isNum) {
+				if (optch == 'o' && isNum) {
 					ounit = num;
 					break;
 				}
 
-				fprintf(stderr, "Wrong option '-%c' found.\n", opt);
+				fprintf(stderr, "Wrong option '-%c' found.\n", optch);
 				return 1;
 			}
 			continue;
@@ -260,14 +268,13 @@ main(int argc, char **argv)
 		}
 
 		/* parse long option */
-		char opt [100];
 		strncpy(opt, arg+2, 100);
 		opt[99] = 0;
 
-		char *val = strchr(opt, '=');
+		val = strchr(opt, '=');
 
-		long int num = 0;
-		int isNum = 0;
+		num = 0;
+		isNum = 0;
 
 		if (val) {
 			*val = 0;
@@ -277,7 +284,7 @@ main(int argc, char **argv)
 				isNum = parseint(val, &num);
 		}
 
-		int opt_parsed = 0;
+		opt_parsed = 0;
 
 		if (strcmp(opt, "help")==0) {
 			print_help(argv[0]);
@@ -318,9 +325,6 @@ main(int argc, char **argv)
 			opt_parsed = 1;
 			renderer_type = RENDERER_NULL;
 		}
-
-		const char *name;
-		size_t i;
 
 		/* extension categories */
 		if ((name = strprefix(opt, category_prefix))) {
@@ -414,8 +418,6 @@ main(int argc, char **argv)
 
 
 	/* creating the renderer */
-	hoedown_renderer *renderer = NULL;
-	void (*renderer_free)(hoedown_renderer*) = NULL;
 
 	switch (renderer_type) {
 		case RENDERER_HTML:
