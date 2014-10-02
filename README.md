@@ -1,3 +1,6 @@
+This is my fork of the hoedown project. See the notes at the end for changes.
+- APN
+
 Hoedown
 =======
 
@@ -102,3 +105,13 @@ and perform SmartyPants, respectively.
 If you are using [CocoaPods](http://cocoapods.org), just add the line `pod 'hoedown'` to your Podfile and call `pod install`.
 
 Or, if you prefer, you can just throw the files at `src` into your project.
+
+Changes in this fork (APN)
+--------------------------
+
+The original project would not build with older Microsoft 
+compilers (pre-VS2013) due to C99-isms and use of some functions not available
+in the older RTL's. This fork works around those issues.
+
+In addition, a new directory, tcl, adds bindings for the Tcl language.
+
