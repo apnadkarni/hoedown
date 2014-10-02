@@ -1,0 +1,43 @@
+critcl::cheaders ../src/html.h ../src/buffer.h ../src/document.h
+critcl::csources ../src/autolink.c ../src/buffer.c ../src/document.c ../src/escape.c 
+critcl::csources ../src/html.c ../src/html_blocks.c ../src/html_smartypants.c
+critcl::csources ../src/stack.c ../src/version.c
+
+critcl::ccode {
+    #include "html.h"
+}
+critcl::cproc hoedown::to_html {Tcl_Obj* markdown} Tcl_Obj* {
+    Tcl_Obj *o = NULL;
+    hoedown_renderer *renderer = NULL;
+    hoedown_document *document = NULL;
+    hoedown_buffer *html = NULL;
+
+    renderer = hoedown_html_renderer_new(0,0);
+    if (renderer) {
+        document = hoedown_document_new(renderer, 0, 16);
+        if (document) {
+            html = hoedown_buffer_new(16);
+            if (html) {
+                int len;
+                char *s;
+                s = Tcl_GetStringFromObj(markdown, &len);
+                hoedown_document_render(document, html, s, len);
+                o = Tcl_NewStringObj(html->data, html->size);
+                Tcl_IncrRefCount(o);        /* Mandated by critcl */
+            }
+        }
+    }
+
+    if (html)
+        hoedown_buffer_free(html);
+    if (document)
+        hoedown_document_free(document);
+    if (renderer)
+        hoedown_html_renderer_free(renderer);
+    return o;
+}
+
+package provide hoedown 0.1
+
+critcl::load
+
