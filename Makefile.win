@@ -1,6 +1,9 @@
+# Notes: For some VC++ versions, you may need to add the following to
+# the command line
+# LIBS = bufferoverflowU.lib
+
 CC = cl
 CFLAGS = /O2 /sdl /Isrc /D_CRT_SECURE_NO_WARNINGS
-#LDFLAGS = bufferoverflowU.lib
 
 HOEDOWN_SRC = \
 	src\autolink.obj \
@@ -16,18 +19,19 @@ HOEDOWN_SRC = \
 all: hoedown.dll hoedown.exe smartypants.exe
 
 hoedown.dll: $(HOEDOWN_SRC) hoedown.def
-	$(CC) $(HOEDOWN_SRC) hoedown.def /link /DLL $(LDFLAGS) /out:$@
+	$(CC) $(HOEDOWN_SRC) hoedown.def /link /DLL $(LDFLAGS) $(LIBS) /out:$@
 
 hoedown.exe: bin\hoedown.obj $(HOEDOWN_SRC)
-	$(CC) bin\hoedown.obj $(HOEDOWN_SRC) /link $(LDFLAGS) /out:$@
+	$(CC) bin\hoedown.obj $(HOEDOWN_SRC) /link $(LIBS) $(LDFLAGS) /out:$@
 
 smartypants.exe: bin\smartypants.obj $(HOEDOWN_SRC)
-	$(CC) bin\smartypants.obj $(HOEDOWN_SRC) /link $(LDFLAGS) /out:$@
+	$(CC) bin\smartypants.obj $(HOEDOWN_SRC) /link $(LIBS) $(LDFLAGS) /out:$@
 
 # Housekeeping
 
 clean:
 	del $(HOEDOWN_SRC)
+	del bin\*.obj
 	del hoedown.dll hoedown.exp hoedown.lib
 	del hoedown.exe smartypants.exe
 
