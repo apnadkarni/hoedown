@@ -1,4 +1,5 @@
-CFLAGS = -g -O3 -Wall -Wextra -Wno-unused-parameter -Isrc -std=c99
+CFLAGS = -g -O3 -ansi -pedantic -Wall -Wextra -Wno-unused-parameter -Isrc
+PREFIX = /usr/local
 
 ifneq ($(OS),Windows_NT)
 	CFLAGS += -fPIC
@@ -21,10 +22,10 @@ all:		libhoedown.so hoedown smartypants
 
 # Libraries
 
-libhoedown.so: libhoedown.so.1
+libhoedown.so: libhoedown.so.3
 	ln -f -s $^ $@
 
-libhoedown.so.1: $(HOEDOWN_SRC)
+libhoedown.so.3: $(HOEDOWN_SRC)
 	$(CC) -shared $^ $(LDFLAGS) -o $@
 
 libhoedown.a: $(HOEDOWN_SRC)
@@ -59,7 +60,24 @@ clean:
 	$(RM) libhoedown.so libhoedown.so.1 libhoedown.a
 	$(RM) hoedown smartypants hoedown.exe smartypants.exe
 
+# Installing
+
+install:
+	install -m755 -d $(DESTDIR)$(PREFIX)/lib
+	install -m755 -d $(DESTDIR)$(PREFIX)/bin
+	install -m755 -d $(DESTDIR)$(PREFIX)/include
+
+	install -m644 libhoedown.* $(DESTDIR)$(PREFIX)/lib
+	install -m755 hoedown $(DESTDIR)$(PREFIX)/bin
+	install -m755 smartypants $(DESTDIR)$(PREFIX)/bin
+
+	install -m755 -d $(DESTDIR)$(PREFIX)/include/hoedown
+	install -m644 src/*.h $(DESTDIR)$(PREFIX)/include/hoedown
+
 # Generic object compilations
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
+
+src/html_blocks.o: src/html_blocks.c
+	$(CC) $(CFLAGS) -Wno-static-in-inline -c -o $@ $<
