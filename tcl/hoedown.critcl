@@ -6,21 +6,78 @@ critcl::csources ../src/stack.c ../src/version.c
 critcl::ccode {
     #include "html.h"
 }
-critcl::cproc hoedown::to_html {Tcl_Obj* markdown} Tcl_Obj* {
+critcl::ccommand hoedown::render {} {
     Tcl_Obj *o = NULL;
     hoedown_renderer *renderer = NULL;
     hoedown_document *document = NULL;
     hoedown_buffer *html = NULL;
+    static const char *opts[] = {
+        "-escapehtml",
+        "-skiphtml",
+        "-xhtml",
+        "-hardwrap",
+        "-maxnesting",
+        "-toclevel",
+        "-extensions",
+        NULL,
+    };
+    enum eopts {
+        HOETCL_ESCAPE_HTML,
+        HOETCL_SKIP_HTML,
+        HOETCL_XHTML,
+        HOETCL_HARDWRAP,
+        HOETCL_MAXNESTING,
+        HOETCL_TOCLEVEL,
+        HOETCL_EXTENSIONS,
+    };
+    int status, i, ival, opt;
+    int nesting_level = 16, toc_level = 0, extensions = 0;
+    hoedown_html_flags render_flags = 0;
 
-    renderer = hoedown_html_renderer_new(0,0);
+    if (objc < 2) {
+	Tcl_WrongNumArgs(interp, 1, objv, "?options? MARKDOWN");
+	return TCL_ERROR;
+    }
+    
+    for (i = 1; i < objc-1; ++i) {
+	status = Tcl_GetIndexFromObj(interp, objv[i], opts, "option", 0, &opt);
+        if (status != TCL_OK)
+            return status;
+        switch ((enum eopts) opt) {
+        case HOETCL_ESCAPE_HTML: render_flags |= HOEDOWN_HTML_ESCAPE; break;
+        case HOETCL_SKIP_HTML: render_flags |= HOEDOWN_HTML_SKIP_HTML; break;
+        case HOETCL_XHTML: render_flags |= HOEDOWN_HTML_USE_XHTML; break;
+        case HOETCL_HARDWRAP: render_flags |= HOEDOWN_HTML_HARD_WRAP; break;
+        case HOETCL_EXTENSIONS:
+            extensions = HOEDOWN_EXT_BLOCK | HOEDOWN_EXT_SPAN | HOEDOWN_EXT_FLAGS;
+            break;
+        case HOETCL_MAXNESTING: /* FALLTHRU */
+        case HOETCL_TOCLEVEL:
+            if (++i >= objc-2) {
+                Tcl_SetResult(interp, "Argument missing", TCL_STATIC);
+                return TCL_ERROR;
+            }
+            status = Tcl_GetIntFromObj(interp, objv[i], &ival);
+            if (status != TCL_OK)
+                return status;
+            if (((enum eopts) opt) == HOETCL_TOCLEVEL)
+                toc_level = ival;
+            else
+                nesting_level = ival;
+            break;
+        }
+    }
+
+    renderer = hoedown_html_renderer_new(render_flags, toc_level);
     if (renderer) {
-        document = hoedown_document_new(renderer, 0, 16);
+        document = hoedown_document_new(renderer, extensions, nesting_level);
         if (document) {
-            html = hoedown_buffer_new(16);
+            html = hoedown_buffer_new(64); /* Because that's what the hoedown
+                                            program uses */
             if (html) {
                 int len;
                 char *s;
-                s = Tcl_GetStringFromObj(markdown, &len);
+                s = Tcl_GetStringFromObj(objv[objc-1], &len);
                 hoedown_document_render(document, html, s, len);
                 o = Tcl_NewStringObj(html->data, html->size);
                 Tcl_IncrRefCount(o);        /* Mandated by critcl */
@@ -34,7 +91,15 @@ critcl::cproc hoedown::to_html {Tcl_Obj* markdown} Tcl_Obj* {
         hoedown_document_free(document);
     if (renderer)
         hoedown_html_renderer_free(renderer);
-    return o;
+
+    if (o) {
+        Tcl_SetObjResult(interp, o);
+        return TCL_OK;
+    } else {
+        /* Hoedown doesn't seem to provide error information so generic error*/
+        Tcl_SetResult(interp, "Unknown hoedown library failure", TCL_STATIC);
+        return TCL_ERROR;
+    }
 }
 
 package provide hoedown 0.1
