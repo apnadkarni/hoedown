@@ -1,5 +1,4 @@
-This is my fork of the hoedown project. See the notes at the end for changes.
-- APN
+This is my fork of the hoedown project. See the notes at the end for changes - APN
 
 Hoedown
 =======
@@ -113,5 +112,6 @@ The original project would not build with older Microsoft
 compilers (pre-VS2013) due to C99-isms and use of some functions not available
 in the older RTL's. This fork works around those issues.
 
-In addition, a new directory, tcl, adds bindings for the Tcl language.
+In addition, a new directory, tcl, adds bindings for the Tcl language. See the readme.md
+in that directory for building the Tcl extension.
 
